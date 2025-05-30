@@ -118,7 +118,7 @@ def call_openrouter(prompt):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "google/gemini-2.0-flash-exp:free",
+        "model": "mistralai/mistral-7b-instruct:free",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
@@ -234,11 +234,11 @@ Use the article context to ground your analysis where helpful. Clearly explain h
     return call_openrouter(prompt)
 
 # Streamlit UI
-st.title("🔬 SciCheck Agent (Gemini 2.0 Flash Experimental + Scientific Papers)")
+st.title("🔬 SciCheck Agent (Mistral-7b-instruct + Scientific Papers)")
 
 st.markdown("""
 This app extracts scientifically testable claims from a text or URL, evaluates them using:
-- **Gemini 2.0 Flash Experimental-based internal model verdict**
+- **Mistral-7b-instruct-based internal model verdict**
 - **Crossref + CORE scientific papers (if toggled)**
 """)
 
