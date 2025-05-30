@@ -14,7 +14,7 @@ extraction_templates = {
 You will be given a text. Extract a **numbered list** of explicit, scientifically testable claims.
 
 **Strict rules:**
-- ONLY include claims that appear EXACTLY and VERBATIM in the text.
+- ONLY include claims that appear EXPLICITLY in the text.
 - Each claim must be explicitly stated.
 - If no explicit, complete, testable claims exist, output exactly: "No explicit claims found."
 - Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
@@ -31,7 +31,7 @@ OUTPUT:
 You will be given a text. Extract a **numbered list** of explicit, scientifically testable claims related to science.
 
 **Strict rules:**
-- ONLY include claims that appear EXACTLY and VERBATIM in the text.
+- ONLY include claims that appear EXPLICITLY in the text.
 - Each claim must be explicitly stated.
 - If no relevant testable claims exist, output exactly: "No explicit claims found."
 - Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
@@ -48,7 +48,7 @@ OUTPUT:
 You will be given a text. Extract a **numbered list** of explicit, testable claims related to technology or innovation.
 
 **Strict rules:**
-- ONLY include claims that appear EXACTLY and VERBATIM in the text.
+- ONLY include claims that appear EXPLICITLY in the text.
 - Each claim must be explicitly stated.
 - If no relevant testable claims exist, output exactly: "No explicit claims found."
 - Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
@@ -183,7 +183,7 @@ This app extracts scientifically testable claims from a text or URL, evaluates t
 
 input_mode = st.radio("Choose input method:", ["Paste Text", "Provide URL"])
 prompt_mode = st.selectbox("Choose analysis focus:", list(extraction_templates.keys()))
-use_papers = st.checkbox("📚 Supplement with Crossref + CORE data", value=True)
+use_papers = st.toggle("📚 Supplement with Crossref + CORE data", value=True)
 
 text_input = ""
 if input_mode == "Paste Text":
