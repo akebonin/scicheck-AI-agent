@@ -219,9 +219,8 @@ Use the article context to ground your analysis where helpful. Clearly explain h
 [Your evidence-based response here]
 
 **Sources:**
-- [Title or Brief Description](https://example.com)
-- [Title or Brief Description](https://example.com)
-- [Title or Brief Description](https://example.com)
+- <URL>
+- <URL>
 '''
 
     return call_openrouter(prompt)
