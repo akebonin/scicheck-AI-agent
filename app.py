@@ -234,7 +234,7 @@ Use the article context to ground your analysis where helpful. Clearly explain h
     return call_openrouter(prompt)
 
 # Streamlit UI
-st.title("🔬 SciCheck Agent (Mistral-7b-instruct + Scientific Papers)")
+st.title("🔬 SciCheck AI Agent")
 
 st.markdown("""
 This app extracts scientifically testable claims from a text or URL, evaluates them using:
