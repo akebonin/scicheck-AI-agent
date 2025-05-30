@@ -234,11 +234,11 @@ Use the article context to ground your analysis where helpful. Clearly explain h
     return call_openrouter(prompt)
 
 # Streamlit UI
-st.title("🔬 SciCheck Agent (GPT-3.5 + Scientific Papers)")
+st.title("🔬 SciCheck Agent (Gemini 2.0 Flash Experimental + Scientific Papers)")
 
 st.markdown("""
 This app extracts scientifically testable claims from a text or URL, evaluates them using:
-- **GPT-3.5-based internal model verdict**
+- **Gemini 2.0 Flash Experimental-based internal model verdict**
 - **Crossref + CORE scientific papers (if toggled)**
 """)
 
