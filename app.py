@@ -3,11 +3,11 @@ import trafilatura
 import os
 import requests
 
-# Setup OpenRouter API
+# Setup API keys
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OR_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Extraction template
+# Claim extraction templates
 extraction_templates = {
     "General Analysis of Testable Claims": '''
 You will be given a text. Extract a **numbered list** of explicit, scientifically testable claims.
@@ -16,8 +16,7 @@ You will be given a text. Extract a **numbered list** of explicit, scientificall
 - ONLY include claims that appear EXACTLY and VERBATIM in the text.
 - Each claim must be explicitly stated.
 - If no explicit, complete, testable claims exist, output exactly: "No explicit claims found."
-- Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
-- NEVER include incomplete sentences, headings, summaries, conclusions, speculations, questions, or introductory remarks.
+- DO NOT infer, paraphrase, generalize, or use external knowledge.
 - Output ONLY the claims formatted as a numbered list, or "No explicit claims found."
 
 TEXT:
@@ -25,6 +24,7 @@ TEXT:
 
 OUTPUT:
 ''',
+
     "Specific Focus on Scientific Claims": '''
 You will be given a text. Extract a **numbered list** of explicit, scientifically testable claims related to science.
 
@@ -32,8 +32,7 @@ You will be given a text. Extract a **numbered list** of explicit, scientificall
 - ONLY include claims that appear EXACTLY and VERBATIM in the text.
 - Each claim must be explicitly stated.
 - If no relevant testable claims exist, output exactly: "No explicit claims found."
-- Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
-- NEVER include incomplete sentences, headings, summaries, conclusions, speculations, questions, or introductory remarks.
+- DO NOT infer, paraphrase, generalize, or use external knowledge.
 - Output ONLY the claims formatted as a numbered list, or "No explicit claims found."
 
 TEXT:
@@ -41,6 +40,7 @@ TEXT:
 
 OUTPUT:
 ''',
+
     "Technology or Innovation Claims": '''
 You will be given a text. Extract a **numbered list** of explicit, testable claims related to technology or innovation.
 
@@ -48,8 +48,7 @@ You will be given a text. Extract a **numbered list** of explicit, testable clai
 - ONLY include claims that appear EXACTLY and VERBATIM in the text.
 - Each claim must be explicitly stated.
 - If no relevant testable claims exist, output exactly: "No explicit claims found."
-- Absolutely DO NOT infer, paraphrase, generalize, or introduce external knowledge.
-- NEVER include incomplete sentences, headings, summaries, conclusions, speculations, questions, or introductory remarks.
+- DO NOT infer, paraphrase, generalize, or use external knowledge.
 - Output ONLY the claims formatted as a numbered list, or "No explicit claims found."
 
 TEXT:
@@ -60,8 +59,7 @@ OUTPUT:
 }
 
 # Verification prompt
-verification_prompts = {
-    "General Analysis of Testable Claims": '''
+verification_prompt = '''
 Assess the scientific accuracy of the following claim. Provide:
 
 1. A verdict: VERIFIED, PARTIALLY SUPPORTED, INCONCLUSIVE, or CONTRADICTED.
@@ -77,7 +75,6 @@ Output format:
 - <URL>
 - <URL>
 '''
-}
 
 def call_openrouter(prompt):
     headers = {
@@ -87,9 +84,9 @@ def call_openrouter(prompt):
     payload = {
         "model": "openai/gpt-3.5-turbo",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2
+        "temperature": 0
     }
-    response = requests.post(OR_URL, headers=headers, json=payload)
+    response = requests.post(OPENROUTER_URL, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"].strip()
 
@@ -106,32 +103,62 @@ def extract_claims(text, focus):
     claims = [line.strip() for line in output.split("\n") if line.strip() and line[0].isdigit()]
     return claims if claims else ["No explicit claims found."]
 
-def verify_claim(claim, mode):
-    prompt = verification_prompts[mode].format(claim=claim)
-    return call_openrouter(prompt)
+def fetch_crossref_papers(query):
+    url = f"https://api.crossref.org/works?query={query}&rows=3"
+    headers = {"User-Agent": "SciCheckAgent/1.0 (mailto:test@example.com)"}
+    r = requests.get(url, headers=headers)
+    results = []
+    if r.status_code == 200:
+        items = r.json().get("message", {}).get("items", [])
+        for item in items:
+            results.append(f"{item.get('title', [''])[0]}: {item.get('URL', '')}")
+    return results
 
-def generate_questions(claim):
-    prompt = f"For the following claim, propose up to 3 research questions that can guide deeper scientific investigation. Keep each question on a separate line and omit preambles or explanations.\n\nClaim: {claim}"
-    response = call_openrouter(prompt)
-    return [q.strip("-• ") for q in response.splitlines() if q.strip()][:3]
+def fetch_core_papers(query):
+    url = f"https://core.ac.uk:443/api-v2/articles/search/{query}?page=1&pageSize=3&metadata=true"
+    headers = {"User-Agent": "SciCheckAgent/1.0"}
+    r = requests.get(url)
+    results = []
+    if r.status_code == 200:
+        items = r.json().get("data", [])
+        for item in items:
+            title = item.get("title", "No title")
+            link = item.get("downloadUrl", "") or item.get("urls", [""])[0]
+            results.append(f"{title}: {link}")
+    return results
 
-def generate_research_report(claim, question, article):
-    prompt = f'''
-You are an AI researcher writing a short evidence-based report (max 300 words).
+def verify_claim(claim, article, focus, enrich):
+    base_verdict = call_openrouter(verification_prompt.format(claim=claim))
+    if not enrich:
+        return base_verdict
+    crossref_sources = fetch_crossref_papers(claim)
+    core_sources = fetch_core_papers(claim)
+    source_text = "\n".join(crossref_sources + core_sources)
+    enriched_prompt = f"""
+Given the following article and claim:
 
-Article Context: {article}
+Article: {article}
 Claim: {claim}
-Research Question: {question}
 
-Answer the question and discuss its relation to the claim clearly.
-'''
-    return call_openrouter(prompt)
+And based on these supplemental research links:
+{source_text}
+
+Reassess the claim.
+Respond in this format:
+**Verdict:** <VERDICT>
+**Justification:** <Short explanation>
+**Sources:**
+- <URL>
+- <URL>
+"""
+    return call_openrouter(enriched_prompt)
 
 # Streamlit UI
-st.title("🔬 SciCheck Agent (GPT-3.5 via OpenRouter)")
+st.title("🔬 SciCheck Agent (GPT-3.5 + Crossref/CORE optional)")
 
 input_mode = st.radio("Choose input method:", ["Paste Text", "Provide URL"])
 prompt_mode = st.selectbox("Choose analysis focus:", list(extraction_templates.keys()))
+enrich_with_sources = st.checkbox("🔍 Supplement with Crossref + CORE data")
 
 text_input = ""
 article_title = "User input"
@@ -151,34 +178,15 @@ if text_input and st.button("Run Analysis"):
     st.session_state["claims"] = extract_claims(text_input, prompt_mode)
     st.session_state["article_text"] = text_input
     st.session_state["verdicts"] = {}
-    st.session_state["reports"] = {}
-    st.session_state["questions"] = {}
 
 if "claims" in st.session_state:
-    claims = st.session_state["claims"]
-    if claims == ["No explicit claims found."]:
-        st.info("No explicit claims found.")
-    else:
-        for i, claim in enumerate(claims):
-            st.subheader(f"Claim {i+1}: {claim}")
+    for i, claim in enumerate(st.session_state["claims"]):
+        st.subheader(f"Claim {i+1}: {claim}")
 
-            if i not in st.session_state["verdicts"]:
-                verdict = verify_claim(claim, prompt_mode)
-                st.session_state["verdicts"][i] = verdict
-            else:
-                verdict = st.session_state["verdicts"][i]
+        if i not in st.session_state["verdicts"]:
+            verdict = verify_claim(claim, st.session_state["article_text"], prompt_mode, enrich_with_sources)
+            st.session_state["verdicts"][i] = verdict
+        else:
+            verdict = st.session_state["verdicts"][i]
 
-            st.markdown(f"**Model Verdict:**\n{verdict}")
-
-            with st.expander("Suggested Research Questions"):
-                if i not in st.session_state["questions"]:
-                    st.session_state["questions"][i] = generate_questions(claim)
-
-                for j, q in enumerate(st.session_state["questions"][i]):
-                    st.markdown(f"**Q{j+1}:** {q}")
-                    report_key = f"{i}_{j}"
-                    if st.button(f"Generate Report for Q{j+1}", key=f"btn_{report_key}"):
-                        st.session_state["reports"][report_key] = generate_research_report(claim, q, st.session_state["article_text"])
-
-                    if report_key in st.session_state["reports"]:
-                        st.markdown(f"**Research Report:**\n{st.session_state['reports'][report_key]}")
+        st.markdown(f"**Model Verdict:**\n{verdict}")
