@@ -118,7 +118,7 @@ def call_openrouter(prompt):
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "openai/gpt-3.5-turbo",
+        "model": "google/gemini-2.0-flash-exp:free",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
@@ -131,6 +131,7 @@ def call_openrouter(prompt):
         response.raise_for_status()
 
     return response.json()["choices"][0]["message"]["content"].strip()
+
 
 
 def fetch_crossref(query):
