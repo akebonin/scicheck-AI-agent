@@ -122,9 +122,16 @@ def call_openrouter(prompt):
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
+
     response = requests.post(OR_URL, headers=headers, json=payload)
-    response.raise_for_status()
+
+    # Debug output
+    if response.status_code != 200:
+        st.error(f"API Error {response.status_code}: {response.text}")
+        response.raise_for_status()
+
     return response.json()["choices"][0]["message"]["content"].strip()
+
 
 def fetch_crossref(query):
     url = f"https://api.crossref.org/works?query={query}&rows=3"
