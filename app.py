@@ -194,14 +194,36 @@ def generate_questions(claim):
 
 def generate_research_report(claim, question, article):
     prompt = f'''
-You are an AI researcher writing a short evidence-based report (max 300 words).
+You are an AI researcher writing a short, evidence-based report (maximum 500 words). Your task is to investigate the research question in relation to the claim using verifiable scientific knowledge.
 
-Article Context: {article}
-Claim: {claim}
-Research Question: {question}
+Use the article context to ground your analysis where helpful. Clearly explain how the answer to the research question supports, contradicts, or contextualizes the claim. Provide concise reasoning, avoid speculation, and include references.
 
-Answer the question and discuss its relation to the claim clearly.
+**Requirements:**
+- Answer the research question with clarity and scientific grounding.
+- Explicitly connect the response to the original claim.
+- At the end of the report, list up to 3 relevant sources with clickable full URLs.
+- Prefer recent, peer-reviewed sources when available.
+
+---
+
+**Article Context:**  
+{article}
+
+**Claim:**  
+{claim}
+
+**Research Question:**  
+{question}
+
+**Output Format:**
+[Your evidence-based response here]
+
+**Sources:**
+- [Title or Brief Description](https://example.com)
+- [Title or Brief Description](https://example.com)
+- [Title or Brief Description](https://example.com)
 '''
+
     return call_openrouter(prompt)
 
 # Streamlit UI
