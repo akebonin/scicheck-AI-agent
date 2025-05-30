@@ -64,10 +64,42 @@ OUTPUT:
 
 verification_prompts = {
     "General Analysis of Testable Claims": '''
-Assess the scientific accuracy of the following claim. Provide:
+Assess the scientific accuracy of the following general claim. Provide:
 1. A verdict: VERIFIED, PARTIALLY SUPPORTED, INCONCLUSIVE, or CONTRADICTED.
 2. A concise justification (max 1000 characters).
 3. Relevant source links, formatted as full URLs.
+
+Claim: "{claim}"
+
+Output format:
+**Verdict:** <VERDICT>
+**Justification:** <Short explanation>
+**Sources:**
+- <URL>
+- <URL>
+''',
+
+    "Specific Focus on Scientific Claims": '''
+Assess the scientific validity of the following claim from a scientific perspective. Provide:
+1. A verdict: VERIFIED, PARTIALLY SUPPORTED, INCONCLUSIVE, or CONTRADICTED.
+2. A concise scientific explanation (max 1000 characters).
+3. Relevant peer-reviewed or preprint source links, formatted as full URLs.
+
+Claim: "{claim}"
+
+Output format:
+**Verdict:** <VERDICT>
+**Justification:** <Short explanation>
+**Sources:**
+- <URL>
+- <URL>
+''',
+
+    "Technology or Innovation Claims": '''
+Assess the credibility of the following technology or innovation-related claim. Provide:
+1. A verdict: VERIFIED, PARTIALLY SUPPORTED, INCONCLUSIVE, or CONTRADICTED.
+2. A short, well-reasoned explanation with focus on technical evidence or feasibility (max 1000 characters).
+3. Links to relevant technical documents, studies, or news sources.
 
 Claim: "{claim}"
 
