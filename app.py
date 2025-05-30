@@ -3,9 +3,9 @@ import trafilatura
 import os
 import requests
 
-# Setup Perplexity Sonar API
-PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
-PPLX_URL = "https://api.perplexity.ai/chat/completions"
+# Setup OpenRouter API
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OR_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Extraction template
 extraction_templates = {
@@ -25,7 +25,6 @@ TEXT:
 
 OUTPUT:
 ''',
-
     "Specific Focus on Scientific Claims": '''
 You will be given a text. Extract a **numbered list** of explicit, scientifically testable claims related to science.
 
@@ -42,7 +41,6 @@ TEXT:
 
 OUTPUT:
 ''',
-
     "Technology or Innovation Claims": '''
 You will be given a text. Extract a **numbered list** of explicit, testable claims related to technology or innovation.
 
@@ -61,7 +59,7 @@ OUTPUT:
 '''
 }
 
-# Verification prompt (unchanged)
+# Verification prompt
 verification_prompts = {
     "General Analysis of Testable Claims": '''
 Assess the scientific accuracy of the following claim. Provide:
@@ -81,16 +79,17 @@ Output format:
 '''
 }
 
-def call_sonar(prompt):
+def call_openrouter(prompt):
     headers = {
-        "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "sonar-pro",
-        "messages": [{"role": "user", "content": prompt}]
+        "model": "openai/gpt-3.5-turbo",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2
     }
-    response = requests.post(PPLX_URL, headers=headers, json=payload)
+    response = requests.post(OR_URL, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"].strip()
 
@@ -103,17 +102,17 @@ def extract_article_from_url(url):
 
 def extract_claims(text, focus):
     prompt = extraction_templates[focus].format(text=text)
-    output = call_sonar(prompt)
+    output = call_openrouter(prompt)
     claims = [line.strip() for line in output.split("\n") if line.strip() and line[0].isdigit()]
     return claims if claims else ["No explicit claims found."]
 
 def verify_claim(claim, mode):
     prompt = verification_prompts[mode].format(claim=claim)
-    return call_sonar(prompt)
+    return call_openrouter(prompt)
 
 def generate_questions(claim):
     prompt = f"For the following claim, propose up to 3 research questions that can guide deeper scientific investigation. Keep each question on a separate line and omit preambles or explanations.\n\nClaim: {claim}"
-    response = call_sonar(prompt)
+    response = call_openrouter(prompt)
     return [q.strip("-• ") for q in response.splitlines() if q.strip()][:3]
 
 def generate_research_report(claim, question, article):
@@ -126,10 +125,10 @@ Research Question: {question}
 
 Answer the question and discuss its relation to the claim clearly.
 '''
-    return call_sonar(prompt)
+    return call_openrouter(prompt)
 
 # Streamlit UI
-st.title("🔬 SciCheck Agent (Perplexity Sonar)")
+st.title("🔬 SciCheck Agent (GPT-3.5 via OpenRouter)")
 
 input_mode = st.radio("Choose input method:", ["Paste Text", "Provide URL"])
 prompt_mode = st.selectbox("Choose analysis focus:", list(extraction_templates.keys()))
